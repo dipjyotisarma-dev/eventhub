@@ -1,6 +1,6 @@
 // frontend/app/page.tsx
 import { MOCK_EVENTS } from "@/data/mockEvents";
-import EventCard from "@/components/EventCard";
+import EventDiscovery from "@/components/EventDiscovery";
 
 export default function HomePage() {
   return (
@@ -15,19 +15,8 @@ export default function HomePage() {
         </p>
       </div>
 
-      {/* Section Title */}
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
-          Featured & Upcoming Events ({MOCK_EVENTS.length})
-        </h2>
-      </div>
-
-      {/* Events Grid */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {MOCK_EVENTS.map((event) => (
-          <EventCard key={event.id} event={event} />
-        ))}
-      </div>
+      {/* Interactive Discovery Section (Search, Filters, Grid, Empty State) */}
+      <EventDiscovery initialEvents={MOCK_EVENTS} />
     </div>
   );
 }
