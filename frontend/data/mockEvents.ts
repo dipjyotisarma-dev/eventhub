@@ -1,0 +1,60 @@
+// frontend/data/mockEvents.ts
+import { Event } from "@/types/event";
+
+export const MOCK_EVENTS: Event[] = [
+  {
+    id: "evt_1",
+    title: "AI Engineer Summit 2026",
+    description: "Deep dive into production LLM serving, agentic workflows, and full-stack AI system design.",
+    category: "Tech",
+    date: "2026-10-15T09:00:00Z",
+    location: "Bangalore, Tech Park",
+    price: 999,
+    availableTickets: 45,
+    isFeatured: true,
+  },
+  {
+    id: "evt_2",
+    title: "Indie Rock Night Live",
+    description: "An electrifying evening featuring top indie rock bands and live acoustic performances.",
+    category: "Music",
+    date: "2026-10-20T18:30:00Z",
+    location: "Mumbai, Cultural Arena",
+    price: 499,
+    availableTickets: 120,
+    isFeatured: false,
+  },
+  {
+    id: "evt_3",
+    title: "FastAPI & Distributed Systems Workshop",
+    description: "Hands-on masterclass building scalable async APIs, background workers, and caching layers.",
+    category: "Workshop",
+    date: "2026-10-25T10:00:00Z",
+    location: "Hyderabad, Innovation Hub",
+    price: 799,
+    availableTickets: 25,
+    isFeatured: true,
+  },
+  {
+    id: "evt_4",
+    title: "National Badminton Championship",
+    description: "Watch the top national shuttlers compete in high-stakes quarter and semi-final matches.",
+    category: "Sports",
+    date: "2026-11-02T14:00:00Z",
+    location: "New Delhi, Indoor Stadium",
+    price: 299,
+    availableTickets: 300,
+    isFeatured: false,
+  },
+  {
+    id: "evt_5",
+    title: "AI Founders & Builders Mixer",
+    description: "Network with AI founders, angel investors, and engineers building the next wave of GenAI products.",
+    category: "Business",
+    date: "2026-11-10T17:00:00Z",
+    location: "Bangalore, Indiranagar",
+    price: 0, // Free event
+    availableTickets: 60,
+    isFeatured: false,
+  },
+];
