@@ -86,7 +86,7 @@ export default function EventDiscovery({ initialEvents }: EventDiscoveryProps) {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by topic, speaker, organizer, or venue..."
-              className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 py-2.5 pl-10 pr-10 text-sm text-zinc-900 placeholder-zinc-400 transition focus:border-zinc-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-white dark:placeholder-zinc-500 dark:focus:border-white dark:focus:ring-white"
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50/80 py-2.5 pl-10 pr-10 text-sm text-zinc-900 placeholder-zinc-400 transition focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 dark:border-zinc-700 dark:bg-zinc-800/80 dark:text-white dark:placeholder-zinc-400 dark:focus:border-orange-500 dark:focus:ring-orange-500"
             />
             {searchQuery && (
               <button
