@@ -1,9 +1,10 @@
 // frontend/components/EventDiscovery.tsx
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Event, EventCategory } from "@/types/event";
 import EventCard from "@/components/EventCard";
+import { getEvents } from "@/lib/api";
 
 interface EventDiscoveryProps {
   initialEvents: Event[];
@@ -26,35 +27,48 @@ export default function EventDiscovery({ initialEvents }: EventDiscoveryProps) {
   const [selectedCity, setSelectedCity] = useState("All Cities");
   const [priceFilter, setPriceFilter] = useState<"All" | "Free" | "Paid">("All");
 
-  // Derived state for filtered events
-  const filteredEvents = useMemo(() => {
-    return initialEvents.filter((event) => {
-      // 1. Category match
-      if (selectedCategory !== "All" && event.category !== selectedCategory) {
-        return false;
-      }
+  const [events, setEvents] = useState<Event[]>(initialEvents);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isBackendConnected, setIsBackendConnected] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-      // 2. City match
-      if (selectedCity !== "All Cities" && event.city !== selectedCity) {
-        return false;
-      }
+  // Fetch events from FastAPI backend
+  const fetchFilteredEvents = useCallback(async () => {
+    setIsLoading(true);
+    setErrorMessage(null);
 
-      // 3. Price match
-      if (priceFilter === "Free" && event.price !== 0) return false;
-      if (priceFilter === "Paid" && event.price === 0) return false;
-
-      // 4. Search query match
-      if (!searchQuery.trim()) return true;
-      const q = searchQuery.toLowerCase().trim();
-      return (
-        event.title.toLowerCase().includes(q) ||
-        event.description.toLowerCase().includes(q) ||
-        event.venue.toLowerCase().includes(q) ||
-        event.organizer.toLowerCase().includes(q) ||
-        event.tags.some((t) => t.toLowerCase().includes(q))
-      );
+    const res = await getEvents({
+      category: selectedCategory !== "All" ? selectedCategory : undefined,
+      city: selectedCity !== "All Cities" ? selectedCity : undefined,
+      q: searchQuery.trim() || undefined,
     });
-  }, [initialEvents, selectedCategory, selectedCity, priceFilter, searchQuery]);
+
+    setIsBackendConnected(res.isLive);
+    if (res.error && !res.isLive) {
+      // Backend is offline, but fallback was used
+      setErrorMessage("FastAPI backend is offline. Using local dataset.");
+    }
+
+    // Apply client-side price filter if needed
+    let data = res.data;
+    if (priceFilter === "Free") {
+      data = data.filter((e) => e.price === 0);
+    } else if (priceFilter === "Paid") {
+      data = data.filter((e) => e.price > 0);
+    }
+
+    setEvents(data);
+    setIsLoading(false);
+  }, [selectedCategory, selectedCity, searchQuery, priceFilter]);
+
+  // Trigger fetch with slight debounce on typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchFilteredEvents();
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [fetchFilteredEvents]);
 
   const hasActiveFilters =
     searchQuery !== "" ||
@@ -71,10 +85,31 @@ export default function EventDiscovery({ initialEvents }: EventDiscoveryProps) {
 
   return (
     <section id="events" className="space-y-8">
+      {/* Backend Status Indicator */}
+      <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center gap-2">
+          <span
+            className={`inline-block h-2 w-2 rounded-full ${
+              isBackendConnected ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+            }`}
+          />
+          <span className="font-medium text-zinc-500 dark:text-zinc-400">
+            {isBackendConnected
+              ? "Connected to FastAPI Backend (port 8000)"
+              : "Running in Offline Mode (Mock fallback)"}
+          </span>
+        </div>
+        {errorMessage && (
+          <span className="text-[11px] text-amber-600 dark:text-amber-400">
+            {errorMessage}
+          </span>
+        )}
+      </div>
+
       {/* Search & Multi-Filter Controls */}
       <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          {/* Search Input with semantic SVG */}
+          {/* Search Input */}
           <div className="relative flex-1">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-zinc-400">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -108,7 +143,7 @@ export default function EventDiscovery({ initialEvents }: EventDiscoveryProps) {
             <select
               value={selectedCity}
               onChange={(e) => setSelectedCity(e.target.value)}
-              className="rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-xs font-medium text-zinc-800 transition hover:border-zinc-300 focus:border-zinc-900 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-200"
+              className="rounded-lg border border-zinc-200 bg-zinc-50/80 px-3 py-2 text-xs font-medium text-zinc-800 transition hover:border-zinc-300 focus:border-orange-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800/80 dark:text-zinc-200"
             >
               {CITIES.map((city) => (
                 <option key={city} value={city}>
@@ -169,7 +204,7 @@ export default function EventDiscovery({ initialEvents }: EventDiscoveryProps) {
             {selectedCategory === "All" ? "All Upcoming Events" : `${selectedCategory} Gatherings`}
           </h2>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-            Showing {filteredEvents.length} {filteredEvents.length === 1 ? "event" : "events"} in {selectedCity}
+            Showing {events.length} {events.length === 1 ? "event" : "events"} in {selectedCity}
           </p>
         </div>
 
@@ -185,15 +220,33 @@ export default function EventDiscovery({ initialEvents }: EventDiscoveryProps) {
         )}
       </div>
 
-      {/* Grid vs Empty State */}
-      {filteredEvents.length > 0 ? (
+      {/* Conditional UI States: Loading vs Grid vs Empty */}
+      {isLoading ? (
+        /* Loading Skeletons */
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredEvents.map((event) => (
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div
+              key={i}
+              className="h-80 animate-pulse rounded-xl border border-zinc-200 bg-zinc-100/80 p-5 dark:border-zinc-800 dark:bg-zinc-900/50 flex flex-col justify-between"
+            >
+              <div className="space-y-3">
+                <div className="h-32 w-full rounded-lg bg-zinc-200 dark:bg-zinc-800" />
+                <div className="h-4 w-3/4 rounded bg-zinc-200 dark:bg-zinc-800" />
+                <div className="h-3 w-1/2 rounded bg-zinc-200 dark:bg-zinc-800" />
+              </div>
+              <div className="h-8 w-full rounded bg-zinc-200 dark:bg-zinc-800" />
+            </div>
+          ))}
+        </div>
+      ) : events.length > 0 ? (
+        /* Event Grid */
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {events.map((event) => (
             <EventCard key={event.id} event={event} />
           ))}
         </div>
       ) : (
-        /* Empty State with clean semantic SVG */
+        /* Empty State */
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-white py-16 px-6 text-center dark:border-zinc-800 dark:bg-zinc-900/40">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
